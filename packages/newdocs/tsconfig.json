@@ -12,7 +12,8 @@
       "@siberiacancode/docs/utils": ["./src/lib"],
       "@siberiacancode/docs": ["."],
       "@siberiacancode/docs/*": ["./*"],
-      "@docs/*": ["./*"]
+      "@docs/*": ["./*"],
+      "@siberiacancode/reactuse": ["../core/dist/cjs/index.cjs"]
     },
     "resolveJsonModule": true,
     "types": ["@types/web-bluetooth", "@types/dom-speech-recognition"],

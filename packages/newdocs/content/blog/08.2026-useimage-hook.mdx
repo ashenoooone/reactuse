@@ -1,0 +1,165 @@
+---
+title: 'React useImage: image loading as component state'
+description: Preload an image, render only when it is ready, and make avatar fallbacks a first-class part of the component model.
+date: 2026-08-22
+---
+
+[`useImage`](https://reactuse.org/functions/hooks/useImage) turns an image URL into a small loading state machine: `isLoading`, `isSuccess`, `isError`, `error`, and the loaded `HTMLImageElement`. That is the real point of the hook. It is not trying to replace `<img>`. It moves the browser's image lifecycle into React so your UI can decide what should exist while the image is loading, what appears when it fails, and when it is safe to use the actual image element.
+
+Images look simple until the UI depends on them. Avatars need initials when a photo is missing. Product cards need skeletons instead of broken image icons. Editors and download buttons need the image to be loaded before canvas work starts. `useImage` gives those cases one explicit contract instead of scattered `onLoad` and `onError` handlers.
+
+## Render after the image is ready
+
+At the simplest level, call `useImage(src)` and render based on the state it returns:
+
+```tsx
+import { useImage } from '@siberiacancode/reactuse';
+
+function ProductImage({ src, name }: { src: string; name: string }) {
+  const image = useImage(src, { alt: name });
+
+  if (image.isLoading) {
+    return <div className='image-skeleton' />;
+  }
+
+  if (image.isError || !image.value) {
+    return <div className='image-fallback'>No image</div>;
+  }
+
+  return <img alt={name} src={image.value.src} />;
+}
+```
+
+The important detail is that the `<img>` is rendered only after the browser has already loaded the image. That means no flash of a broken image icon, no duplicated `loaded` state in every component, and no guessing whether the resource is ready.
+
+The hook also accepts the image attributes you usually need while loading: `srcset`, `sizes`, `alt`, `class`, `loading`, `crossorigin`, and `referrerPolicy`.
+
+## The loaded value is a real image
+
+`value` is not just the source string. It is the `HTMLImageElement` created by the browser, so it is useful anywhere you need dimensions or pixel data after loading:
+
+```tsx
+import { useImage } from '@siberiacancode/reactuse';
+
+function DownloadButton({ src }: { src: string }) {
+  const image = useImage(src, { crossorigin: 'anonymous' });
+
+  const download = () => {
+    if (!image.value) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = image.value.naturalWidth;
+    canvas.height = image.value.naturalHeight;
+    canvas.getContext('2d')!.drawImage(image.value, 0, 0);
+
+    // convert the canvas to a blob, then download it
+  };
+
+  return (
+    <button disabled={!image.isSuccess} onClick={download}>
+      Download
+    </button>
+  );
+}
+```
+
+That is the hook's shape in one sentence: let the browser load the image first, then let React render or operate on a known-good image.
+
+## Avatar fallback with compound components
+
+The most common place this pattern shows up is an avatar. Avatar components are often built as compound components because the API reads like the UI:
+
+```tsx
+<Avatar.Root className='avatar' src={user.imageUrl} alt={user.name}>
+  <Avatar.Image className='avatar-image' />
+  <Avatar.Fallback className='avatar-fallback'>{getInitials(user.name)}</Avatar.Fallback>
+</Avatar.Root>
+```
+
+Under the hood, `Root` owns the image state. `Image` renders only when loading succeeds. `Fallback` renders while loading or when the image fails. That is exactly the job `useImage` is good at:
+
+```tsx
+import { useImage } from '@siberiacancode/reactuse';
+import {
+  createContext,
+  useContext,
+  type HTMLAttributes,
+  type ImgHTMLAttributes
+} from 'react';
+
+type AvatarContextValue = {
+  alt: string;
+  image: ReturnType<typeof useImage>;
+};
+
+const AvatarContext = createContext<AvatarContextValue | null>(null);
+
+function useAvatar() {
+  const context = useContext(AvatarContext);
+
+  if (!context) {
+    throw new Error('Avatar components must be used inside Avatar.Root');
+  }
+
+  return context;
+}
+
+type AvatarRootProps = HTMLAttributes<HTMLSpanElement> & {
+  alt: string;
+  src: string;
+};
+
+function AvatarRoot({ alt, children, src, ...props }: AvatarRootProps) {
+  const image = useImage(src, { alt });
+
+  return (
+    <AvatarContext.Provider value={{ alt, image }}>
+      <span {...props}>{children}</span>
+    </AvatarContext.Provider>
+  );
+}
+
+function AvatarImage(props: Omit<ImgHTMLAttributes<HTMLImageElement>, 'alt' | 'src'>) {
+  const { alt, image } = useAvatar();
+
+  if (!image.isSuccess || !image.value) return null;
+
+  return <img {...props} alt={alt} src={image.value.src} />;
+}
+
+function AvatarFallback({ children, ...props }: HTMLAttributes<HTMLSpanElement>) {
+  const { image } = useAvatar();
+
+  if (image.isSuccess) return null;
+
+  return <span {...props}>{children}</span>;
+}
+
+export const Avatar = {
+  Root: AvatarRoot,
+  Image: AvatarImage,
+  Fallback: AvatarFallback
+};
+```
+
+This is why the hook matters beyond the small implementation. The avatar does not need each slot to coordinate its own events. `Root` creates one source of truth, then the compound components read that state and render their part of the UI.
+
+That is also how many production avatar components are usually modeled. The public API says "here is the image slot, here is the fallback slot", while the root component decides which one is currently allowed to render. `useImage` makes that decision predictable because the image lifecycle is already normalized into state.
+
+## Why not just use onLoad?
+
+`onLoad` and `onError` are fine for one-off images. But once the image controls component structure, they spread the concern across markup:
+
+- the image element needs handlers;
+- the fallback needs to know whether those handlers fired;
+- the parent needs to reset state when `src` changes;
+- every component repeats the same loading and error logic.
+
+`useImage` pulls that concern into one hook. Pass a `src`, get the lifecycle. Render the UI you mean.
+
+## Takeaways
+
+- **`useImage` makes image loading explicit** - loading, success, and error become React state.
+- **Render only when ready** - show skeletons or fallbacks without flashing broken browser UI.
+- **Great fit for avatars** - `Root` owns image state, `Image` renders on success, `Fallback` renders during loading or failure.
+- **The loaded value is useful** - `value` is an `HTMLImageElement`, ready for dimensions, canvas, and downloads.

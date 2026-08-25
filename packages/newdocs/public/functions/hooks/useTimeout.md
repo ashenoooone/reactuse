@@ -92,19 +92,21 @@ interface UseTimeoutReturn {
  * @usage medium
  *
  * @param {() => void} callback The function to be executed after the timeout
- * @param {number} delay The delay in milliseconds before the timeout executes the callback function
+ * @param {number} [delay] The delay in milliseconds before the timeout executes the callback function
  * @returns {UseTimeoutReturn} An object with a `ready` boolean state value and a `clear` function to clear timeout
  *
  * @example
  * const { clear, ready } = useTimeout(() => {}, 5000);
  */
-export function useTimeout(callback: () => void, delay: number): UseTimeoutReturn {
+export function useTimeout(callback: () => void, delay?: number): UseTimeoutReturn {
   const [ready, setReady] = useState(false);
 
   const timeoutIdRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const internalCallback = useEvent(callback);
 
   useEffect(() => {
+    if (!delay) return;
+
     timeoutIdRef.current = setTimeout(() => {
       internalCallback();
       setReady(true);
@@ -150,7 +152,7 @@ interface UseTimeoutReturn {
 | Name | Type | Default | Note |
 | --- | --- | --- | --- |
 | callback | `() => void` | - | The function to be executed after the timeout |
-| delay | `number` | - | The delay in milliseconds before the timeout executes the callback function |
+| delay | `number \| undefined` | - | The delay in milliseconds before the timeout executes the callback function |
 
 ### Returns
 

@@ -11,7 +11,7 @@ const loadImage = async (src, options = {}) =>
     if (crossorigin) img.crossOrigin = crossorigin;
     if (referrerPolicy) img.referrerPolicy = referrerPolicy;
     img.onload = () => resolve(img);
-    img.onerror = reject;
+    img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
   });
 /**
  * @name useImage

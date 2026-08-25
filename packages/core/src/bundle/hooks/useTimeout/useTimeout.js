@@ -7,7 +7,7 @@ import { useEvent } from '../useEvent/useEvent';
  * @usage medium
  *
  * @param {() => void} callback The function to be executed after the timeout
- * @param {number} delay The delay in milliseconds before the timeout executes the callback function
+ * @param {number} [delay] The delay in milliseconds before the timeout executes the callback function
  * @returns {UseTimeoutReturn} An object with a `ready` boolean state value and a `clear` function to clear timeout
  *
  * @example
@@ -18,6 +18,7 @@ export function useTimeout(callback, delay) {
   const timeoutIdRef = useRef(undefined);
   const internalCallback = useEvent(callback);
   useEffect(() => {
+    if (!delay) return;
     timeoutIdRef.current = setTimeout(() => {
       internalCallback();
       setReady(true);

@@ -36,6 +36,26 @@ it('Should call callback after the timer expires', () => {
   expect(callback).toHaveBeenCalledOnce();
 });
 
+it('Should not start timeout when delay is undefined', () => {
+  const callback = vi.fn();
+  const { result } = renderHook(() => useTimeout(callback));
+
+  act(() => vi.runAllTimers());
+
+  expect(result.current.ready).toBeFalsy();
+  expect(callback).not.toBeCalled();
+});
+
+it('Should not start timeout when delay is 0', () => {
+  const callback = vi.fn();
+  const { result } = renderHook(() => useTimeout(callback, 0));
+
+  act(() => vi.runAllTimers());
+
+  expect(result.current.ready).toBeFalsy();
+  expect(callback).not.toBeCalled();
+});
+
 it('Should clear the timeout', () => {
   const callback = vi.fn();
   const { result } = renderHook(() => useTimeout(callback, 5000));

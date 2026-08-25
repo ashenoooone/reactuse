@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 /**
  * @name useImage
  * @description - Hook that load an image in the browser
@@ -15,6 +15,8 @@ import { useEffect, useState } from 'react';
  * @param {HTMLImageElement['loading']} [options.loading] The loading of the image
  * @param {string} [options.crossorigin] The crossorigin of the image
  * @param {HTMLImageElement['referrerPolicy']} [options.referrerPolicy] The referrerPolicy of the image
+ * @param {(data: HTMLImageElement) => void} [options.onSuccess] The callback function to be invoked on success
+ * @param {(error: Error) => void} [options.onError] The callback function to be invoked on error
  * @returns {UseImageReturn} An object with the image loading state
  *
  * @example
@@ -26,6 +28,8 @@ export const useImage = (src, options = {}) => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState(undefined);
   const [value, setValue] = useState(undefined);
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
   const { alt, class: className, crossorigin, loading, referrerPolicy, sizes, srcset } = options;
   useEffect(() => {
     setIsLoading(true);
@@ -47,20 +51,23 @@ export const useImage = (src, options = {}) => {
       setIsLoading(false);
       setError(undefined);
       setIsError(false);
+      optionsRef.current.onSuccess?.(image);
     };
-    const onError = (event) => {
+    const onError = () => {
+      const error = new Error(`Failed to load image: ${src}`);
       setValue(undefined);
       setIsSuccess(false);
       setIsLoading(false);
-      setError(event);
+      setError(error);
       setIsError(true);
+      optionsRef.current.onError?.(error);
     };
     image.addEventListener('load', onLoad);
     image.addEventListener('error', onError);
     image.src = src;
     if (image.complete) {
       if (image.naturalWidth > 0) onLoad();
-      else onError(new Event('error'));
+      else onError();
     }
     return () => {
       image.removeEventListener('load', onLoad);

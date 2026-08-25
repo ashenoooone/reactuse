@@ -113,7 +113,9 @@ it('Should handle image error', async () => {
     expect(result.current.isError).toBeTruthy();
     expect(result.current.isSuccess).toBeFalsy();
     expect(result.current.value).toBeUndefined();
-    expect(result.current.error).toBe(event);
+    expect(result.current.error).toEqual(
+      new Error('Failed to load image: https://siberiacancode.github.io/reactuse/logo.svg')
+    );
   });
 });
 
@@ -149,7 +151,39 @@ it('Should handle already failed image', async () => {
     expect(result.current.isError).toBeTruthy();
     expect(result.current.isSuccess).toBeFalsy();
     expect(result.current.value).toBeUndefined();
-    expect(result.current.error?.type).toBe('error');
+    expect(result.current.error).toEqual(
+      new Error('Failed to load image: https://siberiacancode.github.io/reactuse/logo.svg')
+    );
+  });
+});
+
+it('Should call onSuccess callback', async () => {
+  const onSuccess = vi.fn();
+
+  renderHook(() => useImage('https://siberiacancode.github.io/reactuse/logo.svg', { onSuccess }));
+
+  const image = mockImage;
+
+  act(() => image.dispatchEvent(new Event('load')));
+
+  await waitFor(() => {
+    expect(onSuccess).toHaveBeenCalledOnce();
+    expect(onSuccess).toHaveBeenCalledWith(image);
+  });
+});
+
+it('Should call onError callback', async () => {
+  const onError = vi.fn();
+
+  renderHook(() => useImage('https://siberiacancode.github.io/reactuse/logo.svg', { onError }));
+
+  act(() => mockImage.dispatchEvent(new Event('error')));
+
+  await waitFor(() => {
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(
+      new Error('Failed to load image: https://siberiacancode.github.io/reactuse/logo.svg')
+    );
   });
 });
 

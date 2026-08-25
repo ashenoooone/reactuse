@@ -141,7 +141,7 @@ npx useverse@latest add useImage
 Copy and paste the following code into your project.
 
 ```tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** The use image options */
 export interface UseImageOptions {
@@ -159,12 +159,16 @@ export interface UseImageOptions {
   sizes?: string;
   /** The srcset of the image */
   srcset?: string;
+  /** The callback function to be invoked on error */
+  onError?: (error: Error) => void;
+  /** The callback function to be invoked on success */
+  onSuccess?: (data: HTMLImageElement) => void;
 }
 
 /** The use image return type */
 export interface UseImageReturn {
   /** The image loading error */
-  error?: Event;
+  error?: Error;
   /** The error state of the image */
   isError: boolean;
   /** Is image loading? */
@@ -191,6 +195,8 @@ export interface UseImageReturn {
  * @param {HTMLImageElement['loading']} [options.loading] The loading of the image
  * @param {string} [options.crossorigin] The crossorigin of the image
  * @param {HTMLImageElement['referrerPolicy']} [options.referrerPolicy] The referrerPolicy of the image
+ * @param {(data: HTMLImageElement) => void} [options.onSuccess] The callback function to be invoked on success
+ * @param {(error: Error) => void} [options.onError] The callback function to be invoked on error
  * @returns {UseImageReturn} An object with the image loading state
  *
  * @example
@@ -200,8 +206,11 @@ export const useImage = (src: string, options: UseImageOptions = {}): UseImageRe
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState<Event | undefined>(undefined);
+  const [error, setError] = useState<Error | undefined>(undefined);
   const [value, setValue] = useState<HTMLImageElement | undefined>(undefined);
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   const { alt, class: className, crossorigin, loading, referrerPolicy, sizes, srcset } = options;
 
@@ -228,14 +237,17 @@ export const useImage = (src: string, options: UseImageOptions = {}): UseImageRe
       setIsLoading(false);
       setError(undefined);
       setIsError(false);
+      optionsRef.current.onSuccess?.(image);
     };
 
-    const onError = (event: Event) => {
+    const onError = () => {
+      const error = new Error(`Failed to load image: ${src}`);
       setValue(undefined);
       setIsSuccess(false);
       setIsLoading(false);
-      setError(event);
+      setError(error);
       setIsError(true);
+      optionsRef.current.onError?.(error);
     };
 
     image.addEventListener('load', onLoad);
@@ -245,7 +257,7 @@ export const useImage = (src: string, options: UseImageOptions = {}): UseImageRe
 
     if (image.complete) {
       if (image.naturalWidth > 0) onLoad();
-      else onError(new Event('error'));
+      else onError();
     }
 
     return () => {
@@ -290,11 +302,15 @@ export interface UseImageOptions {
   sizes?: string;
   /** The srcset of the image */
   srcset?: string;
+  /** The callback function to be invoked on error */
+  onError?: (error: Error) => void;
+  /** The callback function to be invoked on success */
+  onSuccess?: (data: HTMLImageElement) => void;
 }
 
 export interface UseImageReturn {
   /** The image loading error */
-  error?: Event;
+  error?: Error;
   /** The error state of the image */
   isError: boolean;
   /** Is image loading? */
@@ -320,6 +336,8 @@ export interface UseImageReturn {
 | options.loading | `HTMLImageElement['loading']` | - | The loading of the image |
 | options.crossorigin | `string` | - | The crossorigin of the image |
 | options.referrerPolicy | `HTMLImageElement['referrerPolicy']` | - | The referrerPolicy of the image |
+| options.onSuccess | `(data: HTMLImageElement) => void` | - | The callback function to be invoked on success |
+| options.onError | `(error: Error) => void` | - | The callback function to be invoked on error |
 
 ### Returns
 
