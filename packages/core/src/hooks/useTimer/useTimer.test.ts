@@ -347,3 +347,26 @@ it('Should accept callback as second parameter', () => {
 
   expect(callback).toHaveBeenCalledOnce();
 });
+
+it('Should expire fractional initial seconds without going negative', () => {
+  const { result } = renderHook(() => useTimer(2.5));
+
+  expect(result.current.count).toBe(2.5);
+
+  act(() => vi.advanceTimersToNextTimer());
+  act(() => vi.advanceTimersToNextTimer());
+  act(() => vi.advanceTimersToNextTimer());
+
+  expect(result.current.active).toBeFalsy();
+  expect(result.current.count).toBe(0);
+});
+
+it('Should not go negative when a fractional value crosses zero mid-tick', () => {
+  const { result } = renderHook(() => useTimer(1));
+
+  act(() => result.current.restart(0.4));
+  act(() => vi.advanceTimersToNextTimer());
+
+  expect(result.current.active).toBeFalsy();
+  expect(result.current.count).toBe(0);
+});
