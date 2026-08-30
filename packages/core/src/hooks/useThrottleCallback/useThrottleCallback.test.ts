@@ -47,7 +47,12 @@ it('Should pass parameters into callback', () => {
   expect(callback).not.toHaveBeenCalledWith('second');
 
   act(() => vi.advanceTimersByTime(100));
+  expect(callback).toHaveBeenCalledWith('second');
+
   result.current('third');
+  expect(callback).not.toHaveBeenCalledWith('third');
+
+  act(() => vi.advanceTimersByTime(100));
   expect(callback).toHaveBeenCalledWith('third');
 });
 
@@ -64,6 +69,29 @@ it('Should use latest arguments for delayed call', () => {
 
   act(() => vi.advanceTimersByTime(100));
   expect(callback).toHaveBeenCalledWith('second');
+});
+
+it('Should keep throttling active while processing a trailing call', () => {
+  const callback = vi.fn();
+
+  const { result } = renderHook(() => useThrottleCallback(callback, 100));
+
+  result.current('a');
+  expect(callback).toHaveBeenCalledTimes(1);
+
+  result.current('b');
+  expect(callback).toHaveBeenCalledTimes(1);
+
+  act(() => vi.advanceTimersByTime(100));
+  expect(callback).toHaveBeenCalledTimes(2);
+  expect(callback).toHaveBeenLastCalledWith('b');
+
+  result.current('c');
+  expect(callback).toHaveBeenCalledTimes(2);
+
+  act(() => vi.advanceTimersByTime(100));
+  expect(callback).toHaveBeenCalledTimes(3);
+  expect(callback).toHaveBeenLastCalledWith('c');
 });
 
 it('Should return new function when delay changes', () => {

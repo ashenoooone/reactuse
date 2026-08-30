@@ -34,9 +34,11 @@ export const useThrottleCallback = <Params extends unknown[], Return>(
 
   const throttled = useMemo(() => {
     const timer = () => {
-      isCalledRef.current = false;
+      if (!lastArgsRef.current) {
+        isCalledRef.current = false;
+        return;
+      }
 
-      if (!lastArgsRef.current) return;
       internalCallbackRef.current.apply(this, lastArgsRef.current);
       lastArgsRef.current = null;
       setTimeout(timer, delayRef.current);

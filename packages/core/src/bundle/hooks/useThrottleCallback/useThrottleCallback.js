@@ -24,8 +24,10 @@ export const useThrottleCallback = (callback, delay) => {
   delayRef.current = delay;
   const throttled = useMemo(() => {
     const timer = () => {
-      isCalledRef.current = false;
-      if (!lastArgsRef.current) return;
+      if (!lastArgsRef.current) {
+        isCalledRef.current = false;
+        return;
+      }
       internalCallbackRef.current.apply(this, lastArgsRef.current);
       lastArgsRef.current = null;
       setTimeout(timer, delayRef.current);
