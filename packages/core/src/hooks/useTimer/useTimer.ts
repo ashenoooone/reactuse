@@ -106,15 +106,14 @@ export interface UseTimer {
 export const useTimer = ((...params: any[]) => {
   const initialSeconds = Math.max((params[0] ?? 0) as PositiveInteger<number>, 0);
   const options = (typeof params[1] === 'object' ? params[1] : { onExpire: params[1] }) as
-    | UseTimerOptions
-    | undefined;
+    UseTimerOptions | undefined;
 
   const [active, setActive] = useState(initialSeconds > 0 && (options?.immediately ?? true));
   const [seconds, setSeconds] = useState(initialSeconds);
 
   const intervalIdRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const optionsRef = useRef<UseTimerOptions>(options);
-  optionsRef.current = options ?? {};
+  optionsRef.current = options;
 
   useDidUpdate(() => {
     if (initialSeconds <= 0) {

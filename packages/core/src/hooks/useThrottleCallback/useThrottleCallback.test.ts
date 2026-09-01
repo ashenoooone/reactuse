@@ -119,3 +119,57 @@ it('Should return new function when delay changes', () => {
   expect(callback).toHaveBeenCalledWith('fourth');
   expect(callback).toHaveBeenCalledTimes(3);
 });
+
+it('Should reset the throttle window when no trailing call is pending', () => {
+  const callback = vi.fn();
+
+  const { result } = renderHook(() => useThrottleCallback(callback, 100));
+
+  result.current('first');
+  expect(callback).toHaveBeenCalledTimes(1);
+
+  act(() => vi.advanceTimersByTime(100));
+  expect(callback).toHaveBeenCalledTimes(2);
+
+  act(() => vi.advanceTimersByTime(100));
+  expect(callback).toHaveBeenCalledTimes(2);
+
+  result.current('second');
+  expect(callback).toHaveBeenCalledTimes(3);
+  expect(callback).toHaveBeenLastCalledWith('second');
+});
+
+it('Should cancel a pending trailing call', () => {
+  const callback = vi.fn();
+
+  const { result } = renderHook(() => useThrottleCallback(callback, 100));
+
+  result.current('first');
+  expect(callback).toHaveBeenCalledTimes(1);
+
+  result.current('second');
+  expect(callback).toHaveBeenCalledTimes(1);
+
+  result.current.cancel();
+
+  act(() => vi.advanceTimersByTime(100));
+  expect(callback).toHaveBeenCalledTimes(1);
+  expect(callback).not.toHaveBeenCalledWith('second');
+
+  result.current('third');
+  expect(callback).toHaveBeenCalledTimes(2);
+  expect(callback).toHaveBeenLastCalledWith('third');
+});
+
+it('Should do nothing when cancel is called without a pending call', () => {
+  const callback = vi.fn();
+
+  const { result } = renderHook(() => useThrottleCallback(callback, 100));
+
+  expect(() => result.current.cancel()).not.toThrow();
+  expect(callback).not.toHaveBeenCalled();
+
+  result.current('value');
+  expect(callback).toHaveBeenCalledTimes(1);
+  expect(callback).toHaveBeenCalledWith('value');
+});

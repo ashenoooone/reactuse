@@ -43,6 +43,62 @@ it('Should throttle effect execution', () => {
   expect(effect).toHaveBeenCalledTimes(2);
 });
 
+it('Should skip effect when deps change within the throttle window', () => {
+  const effect = vi.fn();
+
+  const { rerender } = renderHook((value) => useThrottleEffect(effect, 100, [value]), {
+    initialProps: 'initial value'
+  });
+
+  expect(effect).not.toHaveBeenCalled();
+
+  rerender('second value');
+  expect(effect).toHaveBeenCalledOnce();
+
+  rerender('third value');
+  expect(effect).toHaveBeenCalledOnce();
+
+  act(() => vi.advanceTimersByTime(100));
+  expect(effect).toHaveBeenCalledOnce();
+
+  act(() => vi.advanceTimersByTime(100));
+  expect(effect).toHaveBeenCalledTimes(2);
+});
+
+it('Should run the effect again after the throttle window on a later change', () => {
+  const effect = vi.fn();
+
+  const { rerender } = renderHook((value) => useThrottleEffect(effect, 100, [value]), {
+    initialProps: 'initial value'
+  });
+
+  rerender('second value');
+  expect(effect).toHaveBeenCalledOnce();
+
+  act(() => vi.advanceTimersByTime(100));
+
+  rerender('third value');
+  expect(effect).toHaveBeenCalledTimes(2);
+});
+
+it('Should cancel the pending trailing effect on unmount', () => {
+  const effect = vi.fn();
+
+  const { rerender, unmount } = renderHook((value) => useThrottleEffect(effect, 100, [value]), {
+    initialProps: 'initial value'
+  });
+
+  rerender('second value');
+  expect(effect).toHaveBeenCalledOnce();
+
+  act(() => vi.advanceTimersByTime(100));
+
+  unmount();
+
+  act(() => vi.advanceTimersByTime(100));
+  expect(effect).toHaveBeenCalledOnce();
+});
+
 it('Should cleanup on unmount', () => {
   const cleanup = vi.fn();
   const effect = vi.fn(() => cleanup);

@@ -50,7 +50,7 @@ export const useTimer = (...params) => {
   const [seconds, setSeconds] = useState(initialSeconds);
   const intervalIdRef = useRef(undefined);
   const optionsRef = useRef(options);
-  optionsRef.current = options ?? {};
+  optionsRef.current = options;
   useDidUpdate(() => {
     if (initialSeconds <= 0) {
       setActive(false);

@@ -370,3 +370,16 @@ it('Should not go negative when a fractional value crosses zero mid-tick', () =>
   expect(result.current.active).toBeFalsy();
   expect(result.current.count).toBe(0);
 });
+
+it('Should not resume timer when count reached zero', () => {
+  const { result } = renderHook(() => useTimer(1));
+
+  act(() => vi.advanceTimersToNextTimer());
+
+  expect(result.current.count).toBe(0);
+  expect(result.current.active).toBeFalsy();
+
+  act(result.current.resume);
+
+  expect(result.current.active).toBeFalsy();
+});
