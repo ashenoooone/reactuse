@@ -106,6 +106,7 @@ export const Burger = ({ groups, className, ...props }: BurgerProps) => {
                       {...(item.external
                         ? { rel: 'noreferrer', target: '_blank' }
                         : { prefetch: false })}
+                      onClick={burger.close}
                     >
                       {item.name}
                     </Component>
