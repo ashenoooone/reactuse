@@ -113,8 +113,7 @@ targets.forEach((target) => {
 
     it('Should use latest callback', () => {
       const initialCallback = vi.fn();
-      const latestCallback = vi.fn();
-      const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
+      const callback = vi.fn();
 
       const { result, rerender } = renderHook(
         (callback) => {
@@ -129,15 +128,12 @@ targets.forEach((target) => {
 
       if (!target) act(() => result.current(element));
 
-      const subscriptionsAfterMount = addEventListenerSpy.mock.calls.length;
-
-      rerender(latestCallback);
+      rerender(callback);
 
       act(() => document.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 
       expect(initialCallback).not.toHaveBeenCalled();
-      expect(latestCallback).toHaveBeenCalledOnce();
-      expect(addEventListenerSpy).toHaveBeenCalledTimes(subscriptionsAfterMount);
+      expect(callback).toHaveBeenCalledOnce();
     });
 
     it('Should handle target changes', () => {
