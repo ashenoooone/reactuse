@@ -62,7 +62,7 @@ targets.forEach((target) => {
 
       act(() => element.dispatchEvent(new MouseEvent('mousedown')));
 
-      expect(callback).not.toBeCalled();
+      expect(callback).not.toHaveBeenCalled();
 
       act(() => element.dispatchEvent(new MouseEvent('mousedown')));
 
@@ -81,7 +81,7 @@ targets.forEach((target) => {
 
       act(() => element.dispatchEvent(new TouchEvent('touchstart')));
 
-      expect(callback).not.toBeCalled();
+      expect(callback).not.toHaveBeenCalled();
 
       act(() => element.dispatchEvent(new TouchEvent('touchstart')));
 
@@ -104,7 +104,7 @@ targets.forEach((target) => {
 
       act(() => element.dispatchEvent(new MouseEvent('mousedown')));
 
-      expect(onSingleClick).not.toBeCalled();
+      expect(onSingleClick).not.toHaveBeenCalled();
 
       act(() => vi.advanceTimersByTime(DEFAULT_THRESHOLD_TIME));
 

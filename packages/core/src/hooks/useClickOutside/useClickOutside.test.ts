@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 
 import { renderHookServer } from '@/tests';
-import { target } from '@/utils/helpers';
+import { target, targetSymbol } from '@/utils/helpers';
 
 import type { StateRef } from '../useRefState/useRefState';
 
@@ -10,8 +10,8 @@ import { useClickOutside } from './useClickOutside';
 const targets = [
   undefined,
   target('#target'),
-  target(document.getElementById('target')!),
-  target(() => document.getElementById('target')!),
+  target(document.getElementById('target') as HTMLDivElement),
+  target(() => document.getElementById('target') as HTMLDivElement),
   { current: document.getElementById('target') },
   Object.assign(() => {}, {
     state: document.getElementById('target'),
@@ -53,9 +53,9 @@ targets.forEach((target) => {
 
       if (!target) act(() => result.current(element));
 
-      expect(callback).not.toBeCalled();
+      expect(callback).not.toHaveBeenCalled();
 
-      act(() => document.dispatchEvent(new Event('click')));
+      act(() => document.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 
       expect(callback).toHaveBeenCalledOnce();
     });
@@ -70,15 +70,106 @@ targets.forEach((target) => {
 
       if (!target) act(() => result.current(element));
 
-      act(() => element.dispatchEvent(new Event('click')));
+      act(() => element.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 
-      expect(callback).not.toBeCalled();
+      expect(callback).not.toHaveBeenCalled();
     });
 
-    it('Should disconnect on unmount', () => {
+    it('Should subscribe once on mount', () => {
+      const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
+      const callback = vi.fn();
+
+      const { result } = renderHook(() => {
+        if (target) return useClickOutside(target, callback) as unknown as StateRef<HTMLDivElement>;
+        return useClickOutside(callback);
+      });
+
+      if (!target) act(() => result.current(element));
+
+      expect(addEventListenerSpy).toHaveBeenCalledWith('click', expect.any(Function));
+    });
+
+    it('Should not subscribe when element is not resolved', () => {
+      const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
+      const callback = vi.fn();
+
+      const { result } = renderHook(() => {
+        if (target)
+          return useClickOutside(
+            { value: '#missing', type: targetSymbol },
+            callback
+          ) as unknown as StateRef<HTMLDivElement>;
+        return useClickOutside(callback);
+      });
+
+      if (!target) expect(result.current).toBeTypeOf('function');
+
+      expect(addEventListenerSpy).not.toHaveBeenCalledWith('click', expect.any(Function));
+
+      act(() => document.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('Should use latest callback', () => {
+      const initialCallback = vi.fn();
+      const latestCallback = vi.fn();
+      const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
+
+      const { result, rerender } = renderHook(
+        (callback) => {
+          if (target)
+            return useClickOutside(target, callback) as unknown as StateRef<HTMLDivElement>;
+          return useClickOutside(callback);
+        },
+        {
+          initialProps: initialCallback
+        }
+      );
+
+      if (!target) act(() => result.current(element));
+
+      const subscriptionsAfterMount = addEventListenerSpy.mock.calls.length;
+
+      rerender(latestCallback);
+
+      act(() => document.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+
+      expect(initialCallback).not.toHaveBeenCalled();
+      expect(latestCallback).toHaveBeenCalledOnce();
+      expect(addEventListenerSpy).toHaveBeenCalledTimes(subscriptionsAfterMount);
+    });
+
+    it('Should handle target changes', () => {
+      const callback = vi.fn();
+      const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
+      const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
+
+      const { result, rerender } = renderHook(
+        (target) => {
+          if (target)
+            return useClickOutside(target, callback) as unknown as StateRef<HTMLDivElement>;
+          return useClickOutside(callback);
+        },
+        {
+          initialProps: target
+        }
+      );
+
+      if (!target) act(() => result.current(element));
+
+      expect(addEventListenerSpy).toHaveBeenCalledOnce();
+      expect(removeEventListenerSpy).not.toHaveBeenCalled();
+
+      rerender({ current: document.getElementById('target') });
+
+      expect(addEventListenerSpy).toHaveBeenCalledTimes(2);
+      expect(removeEventListenerSpy).toHaveBeenCalledOnce();
+    });
+
+    it('Should cleanup on unmount', () => {
       const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
       const callback = vi.fn();
-      document.body.appendChild(element);
 
       const { result, unmount } = renderHook(() => {
         if (target) return useClickOutside(target, callback) as unknown as StateRef<HTMLDivElement>;
@@ -89,49 +180,8 @@ targets.forEach((target) => {
 
       unmount();
 
-      expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
+      expect(removeEventListenerSpy).toHaveBeenCalledOnce();
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('click', expect.any(Function));
     });
-  });
-
-  it('Should handle target changes', () => {
-    const callback = vi.fn();
-    const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
-    const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
-
-    const { result, rerender } = renderHook(
-      (target) => {
-        if (target) return useClickOutside(target, callback) as unknown as StateRef<HTMLDivElement>;
-        return useClickOutside(callback);
-      },
-      {
-        initialProps: target
-      }
-    );
-
-    if (!target) act(() => result.current(element));
-
-    expect(addEventListenerSpy).toHaveBeenCalledTimes(1);
-    expect(removeEventListenerSpy).not.toHaveBeenCalled();
-
-    rerender({ current: document.getElementById('target') });
-
-    expect(addEventListenerSpy).toHaveBeenCalledTimes(2);
-    expect(removeEventListenerSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('Should cleanup on unmount', () => {
-    const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
-    const callback = vi.fn();
-
-    const { result, unmount } = renderHook(() => {
-      if (target) return useClickOutside(target, callback) as unknown as StateRef<HTMLDivElement>;
-      return useClickOutside(callback);
-    });
-
-    if (!target) act(() => result.current(element));
-
-    unmount();
-
-    expect(removeEventListenerSpy).toHaveBeenCalledWith('click', expect.any(Function));
   });
 });

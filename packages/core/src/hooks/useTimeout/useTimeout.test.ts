@@ -43,7 +43,7 @@ it('Should not start timeout when delay is undefined', () => {
   act(() => vi.runAllTimers());
 
   expect(result.current.ready).toBeFalsy();
-  expect(callback).not.toBeCalled();
+  expect(callback).not.toHaveBeenCalled();
 });
 
 it('Should not start timeout when delay is 0', () => {
@@ -53,7 +53,7 @@ it('Should not start timeout when delay is 0', () => {
   act(() => vi.runAllTimers());
 
   expect(result.current.ready).toBeFalsy();
-  expect(callback).not.toBeCalled();
+  expect(callback).not.toHaveBeenCalled();
 });
 
 it('Should clear the timeout', () => {
@@ -66,7 +66,7 @@ it('Should clear the timeout', () => {
   });
 
   expect(result.current.ready).toBeTruthy();
-  expect(callback).not.toBeCalled();
+  expect(callback).not.toHaveBeenCalled();
 });
 
 it('Should clear up on unmount', () => {
