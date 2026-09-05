@@ -1,4 +1,6 @@
 export * from './useAsyncEffect/useAsyncEffect';
+export * from './useCustomCompareEffect/useCustomCompareEffect';
+export * from './useDeepEffect/useDeepEffect';
 export * from './useDidUpdate/useDidUpdate';
 export * from './useIsFirstRender/useIsFirstRender';
 export * from './useIsomorphicLayoutEffect/useIsomorphicLayoutEffect';
